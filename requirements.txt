@@ -1,0 +1,5 @@
+Django
+djangorestframework
+redis
+drf-spectacular
+psycopg
