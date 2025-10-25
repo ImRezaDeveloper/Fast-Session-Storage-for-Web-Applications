@@ -11,3 +11,6 @@ class AddToCartSerializer(serializers.Serializer):
     name = serializers.CharField()
     price = serializers.FloatField()
     quantity = serializers.IntegerField(min_value=1, default=1)
+    
+class RemoveCartSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()

@@ -27,3 +27,13 @@ def get_cart(session_id):
     key = _cart_key(session_id)
     raw_cart = redis_client.hgetall(key)
     return [json.loads(item) for item in raw_cart.values()]
+
+# remove cart
+def remove_cart(session_id, product_id):
+    key = _cart_key(session_id)
+    redis_client.hdel(key, product_id)
+    
+# remove all items in cart
+def remove_all_items(session_id):
+    key = _cart_key(session_id)
+    redis_client.delete(key)
