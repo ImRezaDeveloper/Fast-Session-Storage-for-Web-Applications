@@ -1,5 +1,5 @@
 Django
 djangorestframework
-redis
-drf-spectacular
-psycopg
+redis == 5.2.1
+drf-spectacular == 0.28.0
+psycopg == 3.2.7
