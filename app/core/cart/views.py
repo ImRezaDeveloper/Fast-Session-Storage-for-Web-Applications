@@ -1,11 +1,18 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from .serializer import AddToCartSerializer
+from .serializer import AddToCartSerializer, CartItemsSerializer
 from . import redis_cart
 from rest_framework.response import Response
 from rest_framework import status
 
 # Create your views here.
+
+class GetCartView(APIView):
+    def get(self, request):
+        session_id = request.session.session_key
+        cart_data = redis_cart.get_cart(session_id)
+        return Response(cart_data)
+    
 
 class AddToCartView(APIView):
     def post(self, request):

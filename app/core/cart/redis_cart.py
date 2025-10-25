@@ -21,3 +21,9 @@ def add_to_cart(session_id, product_id, name, price, quantity):
     # Set the product data in the cart
     # cart:item:session_id
     redis_client.hset(cart_key, product_id, json.dumps(product_data))
+    
+# get_carts
+def get_cart(session_id):
+    key = _cart_key(session_id)
+    raw_cart = redis_client.hgetall(key)
+    return [json.loads(item) for item in raw_cart.values()]
