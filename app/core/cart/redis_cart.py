@@ -37,3 +37,45 @@ def remove_cart(session_id, product_id):
 def remove_all_items(session_id):
     key = _cart_key(session_id)
     redis_client.delete(key)
+    
+# increment quantity
+def increment_quantity(session_id, product_id, step=1):
+    key = _cart_key(session_id)
+    existing = redis_client.hget(key, product_id)
+    
+    if not existing:
+        return False
+    
+    data = json.loads(existing)
+    data['quantity'] += step
+    redis_client.hset(key, product_id, json.dumps(data))
+    
+    return True
+
+# decrement quantity
+def decrement_quantity(session_id, product_id, step=1):
+    key = _cart_key(session_id)
+    existing = redis_client.hget(key, product_id)
+    
+    if not existing:
+        return False
+    
+    data = json.loads(existing)
+    data['quantity'] += max(data['quantity'] - step, 1)
+    redis_client.hset(key, product_id, json.dumps(data))
+    
+    return 
+
+# set explicity
+def set_quantity(session_id, product_id, quantity):
+    key = _cart_key(session_id)
+    existing = redis_client.hget(key, product_id)
+    
+    if not existing:
+        return False
+    
+    data = json.loads(existing)
+    data['quantity'] = quantity
+    redis_client.hset(key, product_id, json.dumps(data))
+    
+    return True
