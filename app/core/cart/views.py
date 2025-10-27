@@ -79,7 +79,9 @@ class SetExiplicityView(APIView):
         return Response(cart_data)
     
     def post(self, request):
-        session_id = request.session.session_key or request.session.create()
+        if not request.session.session_key:
+            request.session.create()
+        session_id = request.session.session_key
         
         serializer = SetQuantitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
