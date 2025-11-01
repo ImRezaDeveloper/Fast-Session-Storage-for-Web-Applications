@@ -133,4 +133,31 @@ class CartCheckOutView(APIView):
         product_ids = [item['product_id'] for item in cart_data]
         
         products = Product.objects.filter(id__in=product_ids, is_active=True)
-        product_map = {product.id: product for products in product}
+        product_map = {product.id: product for product in products}
+        
+        cleaned_cart = []
+        
+        for data in cart_data:
+            product_id = data["product_id"]
+            product = product_map.get(product_id)
+            
+            if not product:
+                redis_cart.remove_cart(session_id, product_id)
+                continue
+            
+            if data["name"] != product.name or float(data["price"]) != float(product.price):
+                redis_cart.update_cart_item(
+                    session_id,
+                    product_id,
+                    product.name,
+                    product.price,
+                    data["quantity"],
+                )
+                data["name"] = product.name
+                data["price"] = float(product.price)
+            
+            data["valid"] = True
+            data["errors"] = ""
+            cleaned_cart.append(data)
+            
+        return Response(cleaned_cart)

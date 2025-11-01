@@ -5,6 +5,8 @@ import json
 
 redis_client = settings.REDIS_CLIENT
 
+CART_TTL = 60 * 30
+
 def _cart_key(session_id):
     return f'cart: {session_id}'
 
@@ -32,6 +34,10 @@ def get_cart(session_id):
 def remove_cart(session_id, product_id):
     key = _cart_key(session_id)
     redis_client.hdel(key, product_id)
+    
+    if redis_client.hlen(key) == 0:
+        promo_key = f"cart:{session_id}:promo_code"
+        redis_client.delete(promo_key)
     
 # remove all items in cart
 def remove_all_items(session_id):
@@ -87,3 +93,15 @@ def set_cart_promo_code(session_id, promo_code):
 def get_cart_promo_code(session_id):
     key = f"cart:{session_id}:promo_code"
     return redis_client.get(key)
+
+def update_cart_item(session_id, product_id, name, price, quantity):
+    key = _cart_key(session_id)
+    
+    product_data = {
+        "product_id": product_id,
+        "name": name,
+        "price": price,
+        "quantity": quantity
+    }
+    
+    redis_client.hset(key, product_id, json.dumps(product_data))

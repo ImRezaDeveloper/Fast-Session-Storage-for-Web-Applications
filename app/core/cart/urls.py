@@ -9,5 +9,6 @@ urlpatterns = [
     path('increment/', views.UpdateCartView.as_view()),
     path('increment/qty/', views.SetExiplicityView.as_view()),
     path('promo/', views.CartPromoView.as_view()),
+    path('checkout/', views.CartCheckOutView.as_view()),
     
 ]
