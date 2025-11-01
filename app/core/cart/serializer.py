@@ -22,3 +22,14 @@ class UpdateQuantitySerializer(serializers.Serializer):
 class SetQuantitySerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
     quantity = serializers.IntegerField(min_value=1)
+    
+class CartPromoSerializer(serializers.Serializer):
+    promo_code = serializers.CharField(max_length=200)
+    
+class CheckOutItemsSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    name = serializers.CharField()
+    price = serializers.FloatField()
+    quantity = serializers.IntegerField(min_value=1, default=1)
+    valid = serializers.BooleanField()
+    errors = serializers.CharField(allow_blank=True)

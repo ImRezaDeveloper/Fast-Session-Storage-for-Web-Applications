@@ -79,3 +79,11 @@ def set_quantity(session_id, product_id, quantity):
     redis_client.hset(key, product_id, json.dumps(data))
     
     return True
+
+def set_cart_promo_code(session_id, promo_code):
+    key = f"cart:{session_id}:promo_code"
+    redis_client.set(key, promo_code)
+
+def get_cart_promo_code(session_id):
+    key = f"cart:{session_id}:promo_code"
+    return redis_client.get(key)
