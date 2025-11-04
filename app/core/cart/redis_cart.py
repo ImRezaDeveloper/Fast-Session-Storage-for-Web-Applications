@@ -17,73 +17,80 @@ def _refresh_cart_ttl(session_id):
 def _cart_key(session_id):
     return f'cart:{session_id}'
 
+def _qty_key(session_id):
+    return f'{_cart_key(session_id)}:qty'
+
+def _details_key(session_id):
+    return f'{_cart_key(session_id)}:details'
+
 def add_to_cart(session_id, product_id, name, price, quantity):
-    cart_key = _cart_key(session_id)
+    # cart_key = _cart_key(session_id)
+    _qty_key = _qty_key(session_id)
+    _details_key = _details_key(session_id)
     
-    product_data = {
-        "product_id": product_id,
-        "name": name,
-        "price": float(price),
-        "quantity": quantity
-    }
+    redis_client.hincrby(_qty_key, product_id, quantity)
     
-    # Set the product data in the cart
-    # cart:item:session_id
-    redis_client.hset(cart_key, product_id, json.dumps(product_data))
+    if not redis_client.hexists(_details_key, product_id):
+        product_data = {
+            "product_id": product_id,
+            "name": name,
+            "price": float(price)
+        }
+        redis_client.hset(_cart_key, product_id, json.dumps(product_data))
+    
     _refresh_cart_ttl(session_id)
     
 # get_carts
 def get_cart(session_id):
-    key = _cart_key(session_id)
-    raw_cart = redis_client.hgetall(key)
-    return [json.loads(item) for item in raw_cart.values()]
+    qty = redis_client.hgetall(_qty_key(session_id))
+    details = redis_client.hgetall(_details_key(session_id))
+    
+    cart_items = []
+    
+    for pid, qty, in qty.items():
+        detail_json = details.get(pid)
+        if not detail_json:
+            continue
+        
+        data = json.loads(detail_json)
+        data["quantity"] = int(qty)
+        cart_items.append(data)
+        
+    return cart_items
 
 # remove cart
 def remove_cart(session_id, product_id):
-    key = _cart_key(session_id)
-    redis_client.hdel(key, product_id)
+    redis_client.hdel(_qty_key(session_id), product_id)
+    redis_client.hdel(_details_key(session_id), product_id)
     
-    if redis_client.hlen(key) == 0:
-        promo_key = f"cart:{session_id}:promo_code"
-        redis_client.delete(promo_key)
+    if redis_client.hlen(session_id) == 0:
+        redis_client.delete(f"{_cart_key(session_id)}:promo_code")
     
     _refresh_cart_ttl(session_id)
     
 # remove all items in cart
 def remove_all_items(session_id):
-    key = _cart_key(session_id)
-    redis_client.delete(key)
+    redis_client.delete(_qty_key(session_id))
+    redis_client.delete(_details_key(session_id))
+    redis_client.delete(f"{_cart_key(session_id)}:promo_code")
     
 # increment quantity
 def increment_quantity(session_id, product_id, step=1):
-    key = _cart_key(session_id)
-    existing = redis_client.hget(key, product_id)
-    
-    if not existing:
-        return False
-    
-    data = json.loads(existing)
-    data['quantity'] += step
-    redis_client.hset(key, product_id, json.dumps(data))
-    
+    redis_client.hincrby(_qty_key(session_id), product_id, step)
     _refresh_cart_ttl(session_id)
     
     return True
 
 # decrement quantity
 def decrement_quantity(session_id, product_id, step=1):
-    key = _cart_key(session_id)
-    existing = redis_client.hget(key, product_id)
+    qty_key = _qty_key(session_id)
+    new_qty = redis_client.hincryby(qty_key, product_id, -step)
     
-    if not existing:
-        return False
-    
-    data = json.loads(existing)
-    data['quantity'] += max(data['quantity'] - step, 1)
-    redis_client.hset(key, product_id, json.dumps(data))
-    
+    if new_qty < 1:
+        redis_client.hdel(qty_key, product_id)
+        redis_client.hdel(_details_key(session_id), product_id)
+        
     _refresh_cart_ttl(session_id)
-    
     return True
 
 # set explicity
@@ -112,14 +119,12 @@ def get_cart_promo_code(session_id):
     return redis_client.get(key)
 
 def update_cart_item(session_id, product_id, name, price, quantity):
-    key = _cart_key(session_id)
-    
-    product_data = {
+    details = {
         "product_id": product_id,
         "name": name,
-        "price": price,
-        "quantity": quantity
+        "price": float(product_id),
     }
     
-    redis_client.hset(key, product_id, json.dumps(product_data))
+    redis_client.hset(_details_key(session_id), product_id, json.dumps(details))
+    redis_client.hset(_qty_key(session_id), product_id, quantity)
     _refresh_cart_ttl(session_id)
