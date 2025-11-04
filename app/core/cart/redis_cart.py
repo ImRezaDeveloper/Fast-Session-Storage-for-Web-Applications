@@ -8,11 +8,9 @@ redis_client = settings.REDIS_CLIENT
 CART_TTL = 60 * 30
 
 def _refresh_cart_ttl(session_id):
-    cart_key = _cart_key(session_id)
-    promo_code = f"{cart_key}:promo_code"
-
-    redis_client.expire(cart_key, CART_TTL)
-    redis_client.expire(promo_code, CART_TTL)
+    redis_client.expire(_qty_key(session_id), CART_TTL)
+    redis_client.expire(_details_key(session_id), CART_TTL)
+    redis_client.expire(f"{_cart_key}:promo_code", CART_TTL)
     
 def _cart_key(session_id):
     return f'cart:{session_id}'
@@ -25,18 +23,18 @@ def _details_key(session_id):
 
 def add_to_cart(session_id, product_id, name, price, quantity):
     # cart_key = _cart_key(session_id)
-    _qty_key = _qty_key(session_id)
-    _details_key = _details_key(session_id)
+    qty_key = _qty_key(session_id)
+    details_key = _details_key(session_id)
     
-    redis_client.hincrby(_qty_key, product_id, quantity)
+    redis_client.hincrby(qty_key, product_id, quantity)
     
-    if not redis_client.hexists(_details_key, product_id):
+    if not redis_client.hexists(details_key, product_id):
         product_data = {
             "product_id": product_id,
             "name": name,
             "price": float(price)
         }
-        redis_client.hset(_cart_key, product_id, json.dumps(product_data))
+        redis_client.hset(details_key, product_id, json.dumps(product_data))
     
     _refresh_cart_ttl(session_id)
     
